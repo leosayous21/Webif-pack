@@ -164,16 +164,47 @@ var Viewer=function(){
     this.drawLines([{x:position.x,y:position.y, z:25+position.z},{x:position.x,y:position.y, z:200}], "blue",2);
   }
   this.gcode="";
+  this.allGCode=[];
   this.drawGCode=function(gcode){
     this.gcode=gcode;
-    this.drawGrid();
-    this.show();
+    var lines=gcode.split('\r\n');
+    var gcodePositions={x:0,y:0,z:0};
+    for(var i=0; i<lines.length; i++){
+      if(lines[i][0]==";")
+      {
+        continue;
+      }
+      var coord=lines[i].match(/[XYZ][-\d.]+/g);
+      if(!coord)
+        continue;
+
+      for(var j=0; j<coord.length; j++){
+        if(coord[j][0]=="X")
+        {
+          var value=parseFloat(coord[j].replace("X",""));
+          gcodePositions.x=value;
+        }
+        else if(coord[j][0]=="Y")
+        {
+          var value=parseFloat(coord[j].replace("Y",""));
+          gcodePositions.y=value;
+        }
+        else if(coord[j][0]=="Z")
+        {
+          var value=parseFloat(coord[j].replace("Z",""));
+          gcodePositions.z=value;
+        }
+      }
+      this.allGCode.push({x:gcodePositions.x, y:gcodePositions.y,z:gcodePositions.z});
+    }
+    
   }
 
   this.drawCNC=function(position){
     scene = new THREE.Scene();
     myView.drawGrid();
     myView.drawCone(position);
+    this.drawLines(this.allGCode, "blue");
     myView.show();
   }
 }

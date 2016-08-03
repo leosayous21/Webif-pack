@@ -80,7 +80,14 @@ function copyofupload(){$("#progress").empty();$("#uploadresult").empty();var b=
 
 function playFile(a){runCommandSilent("play /sd/"+a)}
 
-function readFile(a){runCommandCallback("cat /sd/"+a, function(val){console.log(val)})}
+function readFile(a){runCommandCallback("cat /sd/"+a, function(val){
+  //console.log(val.replace(/N\d{2,}\s/gm, ""));
+  myView.drawGCode(val);
+  /*var lines=val.split("\r\n");
+  for(var i=0; i<val.length; i++){
+    console.log(val[i]);
+  }*/
+})}
 
 function refreshFiles()
 { document.getElementById("fileList").innerHTML="";
