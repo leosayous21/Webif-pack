@@ -58,6 +58,34 @@ $(document).keypress(function(e){
   }
 });
 
+$("#motor_start").click(function(){
+  runCommandSilent();
+});
+$("#motor_stop").click(function(){
+  runCommandSilent("M112");
+});
+$("#motor_reset").click(function(){
+  runCommandSilent("M999");
+});
+
+$("#cooling_start").click(function(){
+
+});
+$("#cooling_stop").click(function(){
+
+});
+$("#spindle_o").click(function(){
+
+});
+$("#spindle_progress").click(function(){
+});
+
+$("spindle_cent").click(function(){
+
+})
+
+
+
 function runCommand(d,b)
 { var a=$("#commandForm");
   d+="\n";url=b?"/command_silent":"/command";

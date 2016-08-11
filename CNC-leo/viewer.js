@@ -33,7 +33,7 @@ var intersects = ray.intersectObjects( scene.children );
     if(intersects[0].point){
       $("#position_x_pointe").val(Math.round(intersects[0].point.x));
       $("#position_y_pointe").val(Math.round(intersects[0].point.y));
-      $("#position_z_pointe").val();
+      $("#position_z_pointe").val("");
     }
   }
 });
@@ -152,9 +152,10 @@ var Viewer=function(){
     scene.add( line );
   }
 
-  this.drawCircle=function(){
-    var geometry = new THREE.CircleGeometry( 2, 32 );
-    var material = new THREE.MeshBasicMaterial( { color: "red" } );
+  this.drawCircle=function(position,radius, color){
+    var geometry = new THREE.CircleGeometry( 2, radius);
+    geometry.applyMatrix( new THREE.Matrix4().makeTranslation(position.x,position.y,position.z));
+    var material = new THREE.MeshBasicMaterial( { color: color } );
     var circle = new THREE.Mesh( geometry, material );
     scene.add( circle );
   }
@@ -165,7 +166,7 @@ var Viewer=function(){
   }
 
   this.drawGrid=function(){
-    myView.drawCircle();
+    myView.drawCircle(0,0,32,"red");
     //vertical
     for(var i=-50; i<50; i++){
       this.drawLines([{x:i*10, y:-500, z:0},{x:i*10, y:500, z:0}], "gray");
@@ -187,11 +188,14 @@ var Viewer=function(){
     geometry.applyMatrix( new THREE.Matrix4().makeRotationX(-Math.PI/2));
     geometry.applyMatrix( new THREE.Matrix4().makeTranslation(position.x,position.y,25+position.z));
 
-    var material = new THREE.MeshBasicMaterial( {color: "blue"} );
+    var material = new THREE.MeshBasicMaterial( {color: "blue",opacity: 0.5} );
     var cone = new THREE.Mesh( geometry, material );
     scene.add( cone );
 
-    this.drawLines([{x:position.x,y:position.y, z:25+position.z},{x:position.x,y:position.y, z:200}], "blue",2);
+    this.drawLines([{x:position.x,y:position.y, z:0},{x:position.x,y:position.y, z:200}], "blue",2);
+
+    //projection
+    this.drawCircle({x:position.x,y:position.y,z:0}, 10, "blue");
   }
   this.gcode="";
   this.allGCode=[];
