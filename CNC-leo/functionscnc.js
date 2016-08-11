@@ -1,7 +1,62 @@
 /* These are functions from functions.js */
 /* Cleaned up so I can read the bloody thing */
 
-var mySmoothie={ip:"192.168.1.236"};
+var mySmoothie={ip:"192.168.2.99"};
+
+jQuery(document).ready(function() {
+ var pos = jQuery('#pos');
+
+ function Command(value){
+   this.value=value;
+   this.return="";
+   this.result=function(){};
+   this.treat=function(val){
+     this.return=val;
+     var status=val.split(",");
+     this.result({status:status[0].replace("<",""),
+                  x: parseFloat(status[4].replace("WPos:","")),
+                  y: parseFloat(status[5]),
+                  z: parseFloat(status[6].replace(">","").replace(/[\n\r]/g, ''))});
+   }
+ }
+
+ function updatePos() {
+   var getStatus=new Command("get status");
+   getStatus.result=function(val){
+     $("#status").html(val.status);
+     if(val.status=="Run"){
+       $(".panel-heading").parent().removeClass("panel-default");
+       $(".panel-heading").parent().removeClass("panel-danger");
+       $(".panel-heading").parent().addClass("panel-primary");
+     }
+     else if(val.status=="Alarm"){
+       $(".panel-heading").parent().removeClass("panel-primary");
+       $(".panel-heading").parent().removeClass("panel-default");
+       $(".panel-heading").parent().addClass("panel-danger");
+     }
+     else{
+       $(".panel-heading").parent().removeClass("panel-primary");
+       $(".panel-heading").parent().removeClass("panel-danger");
+       $(".panel-heading").parent().addClass("panel-default");
+     }
+     $("#position_x").val(val.x);
+     $("#position_y").val(val.y);
+     $("#position_z").val(val.z);
+     myView.drawCNC(val);
+   };
+   runCommandCallback(getStatus.value, function(data){getStatus.treat(data)});
+ }
+
+ updatePos();
+ setInterval(updatePos, 1000); // 1 * 500 miliseconds
+});
+
+$(document).keypress(function(e){
+  //ENTER
+  if(e.keyCode==13){
+    runCommand("G0 F1000 X"+$("#position_x_pointe").val()+" Y"+$("#position_y_pointe").val(),true);
+  }
+});
 
 function runCommand(d,b)
 { var a=$("#commandForm");
@@ -40,10 +95,11 @@ function upload()
   var b=document.getElementById("files").files[0];
   var a=new FileReader();a.readAsBinaryString(b);
   a.onloadend=function(c){xhr=new XMLHttpRequest();
-  xhr.open("POST","/upload",true);
+  xhr.open("POST","http://"+mySmoothie.ip+"/upload",true);
   xhr.setRequestHeader("X-Filename",b.name);
   XMLHttpRequest.prototype.mySendAsBinary=function(k)
-    { var h=new ArrayBuffer(k.length);
+    {
+      var h=new ArrayBuffer(k.length);
        var f=new Uint8Array(h,0);
        for (var g=0;g<k.length;g++)
          { f[g]=(k.charCodeAt(g)&255)
@@ -110,6 +166,7 @@ function zeroY(a){runCommand("G92 Y0",true)}
 function zeroZ(a){runCommand("G92 Z0",true)}
 function zero(a){runCommand("G0 X0 Y0",true);
                  setTimeout(function(){runCommand("G0 Z0",true);},1000)}
+function zeroXY(a){runCommand("G0 X0 Y0",true);}
 
 function posXset()
 { var x=document.getElementById("x_override").value;
@@ -141,3 +198,18 @@ function getEndStops()
 function spindleON(){runCommand("M3",true)}
 
 function spindleOFF(){runCommand("M5",true)}
+
+var progress_down=false;
+$("#progress_spindle").mousedown(function(){
+  progress_down=true;
+});
+$("#progress_spindle").mouseup(function(){
+  progress_down=false;
+});
+$("#progress_spindle").mousemove(function(e){
+  if(progress_down){
+    var valeur=e.offsetX/$("#progress_spindle").width()*100;
+    $('.progress-bar').css('width', valeur+'%').attr('aria-valuenow', valeur);
+    $('#progress_value').html(Math.round(e.offsetX/$("#progress_spindle").width()*10000)/100);
+  }
+});

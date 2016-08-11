@@ -7,15 +7,46 @@ var camera, controls, scene, renderer;
 
 var cross;
 
+$( document ).ready(function() {
 init();
 animate();
+});
+
+$("#gcode_viewer").click(function(event){
+  var elem = renderer.domElement,
+    boundingRect = elem.getBoundingClientRect(),
+    x = (event.clientX - boundingRect.left) * (elem.width / boundingRect.width),
+    y = (event.clientY - boundingRect.top) * (elem.height / boundingRect.height);
+
+var vector = new THREE.Vector3(
+    ( x / $( '#gcode_viewer' ).width()) * 2 - 1,
+    - ( y / $( '#gcode_viewer' ).height()) * 2 + 1,
+    0.5
+);
+projector = new THREE.Projector();
+//projector.unprojectVector( vector, camera );
+vector.unproject(camera);
+var ray = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+var intersects = ray.intersectObjects( scene.children );
+
+  if(intersects.length>0){
+    if(intersects[0].point){
+      $("#position_x_pointe").val(Math.round(intersects[0].point.x));
+      $("#position_y_pointe").val(Math.round(intersects[0].point.y));
+      $("#position_z_pointe").val();
+    }
+  }
+});
+
+
 
 function init() {
+  $( '#gcode_viewer' ).height(window.innerHeight);
 
-  camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 );
+  camera = new THREE.PerspectiveCamera( 60, $( '#gcode_viewer' ).width() / $( '#gcode_viewer' ).height(), 1, 1000 );
   camera.position.z = 100;
 
-  controls = new THREE.TrackballControls( camera );
+  controls = new THREE.TrackballControls( camera , document.getElementById('gcode_viewer'));
 
   controls.rotateSpeed = 1.0;
   controls.zoomSpeed = 1.2;
@@ -57,9 +88,9 @@ function init() {
   renderer = new THREE.WebGLRenderer( { antialias: false } );
   renderer.setClearColor( scene.fog.color );
   renderer.setPixelRatio( window.devicePixelRatio );
-  renderer.setSize( window.innerWidth, window.innerHeight );
+  renderer.setSize( $( '#gcode_viewer' ).width(), $( '#gcode_viewer' ).height() );
 
-  container = document.getElementById( 'container' );
+  container = document.getElementById('gcode_viewer' );
   container.appendChild( renderer.domElement );
 
   stats = new Stats();
@@ -76,10 +107,10 @@ function init() {
 
 function onWindowResize() {
 
-  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.aspect = $( '#gcode_viewer' ).width()/ $( '#gcode_viewer' ).height();
   camera.updateProjectionMatrix();
 
-  renderer.setSize( window.innerWidth, window.innerHeight );
+  renderer.setSize( $( '#gcode_viewer' ).width(), $( '#gcode_viewer' ).height() );
 
   controls.handleResize();
 
@@ -95,7 +126,6 @@ function animate() {
 }
 
 function render() {
-
   renderer.render( scene, camera );
   stats.update();
 
@@ -197,7 +227,7 @@ var Viewer=function(){
       }
       this.allGCode.push({x:gcodePositions.x, y:gcodePositions.y,z:gcodePositions.z});
     }
-    
+
   }
 
   this.drawCNC=function(position){

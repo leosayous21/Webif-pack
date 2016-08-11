@@ -4,11 +4,11 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Smoothieboard CNC Web by Leopold Sayous</title>
-	<script type="text/javascript" src="functionscnc.js"></script>
 	<script src="three.min.js"></script>
 	<script src="TrackballControls.js"></script>
 
 	<script src="Detector.js"></script>
+	<script src="Projector.js"></script>
 	<script src="stats.min.js"></script>
 	<!-- Bootstrap -->
   <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -22,46 +22,7 @@
 	</style>
 
   <script>
-   jQuery(document).ready(function() {
-    var pos = jQuery('#pos');
 
-		function Command(value){
-			this.value=value;
-			this.return="";
-			this.result=function(){};
-			this.treat=function(val){
-				this.return=val;
-				var status=val.split(",");
-				this.result({status:status[0].replace("<",""),
-										 x: parseFloat(status[4].replace("WPos:","")),
-									 	 y: parseFloat(status[5]),
-									 	 z: parseFloat(status[6].replace(">","").replace(/[\n\r]/g, ''))});
-			}
-		}
-
-    function updatePos() {
-			var getStatus=new Command("get status");
-			getStatus.result=function(val){
-				$("#status").html(val.status);
-				if(val.status=="Run"){
-					$("#status_heading").removeClass("panel-default");
-					$("#status_heading").addClass("panel-primary");
-				}
-				else{
-					$("#status_heading").removeClass("panel-primary");
-					$("#status_heading").addClass("panel-default");
-				}
-				$("#position_x").val(val.x);
-				$("#position_y").val(val.y);
-				$("#position_z").val(val.z);
-				myView.drawCNC(val);
-			};
-      runCommandCallback(getStatus.value, function(data){getStatus.treat(data)});
-    }
-
-    updatePos();
-    setInterval(updatePos, 1000); // 1 * 500 miliseconds
-});
 </script>
 
 
@@ -379,6 +340,40 @@
 			  </div>
 			</div>
 
+					<div class="list-group">
+						<span href="#" class="list-group-item">
+							<h4 class="list-group-item-heading">Motor</h4>
+							<p class="list-group-item-text">
+								<button type="button" class="btn btn-success">START</button>
+								<button type="button" class="btn btn-danger" onclick="abort()">STOP</button>
+								<button type="button" class="btn btn-warning" onclick="reset()">RESET</button>
+							</p>
+						</span>
+						<span href="#" class="list-group-item">
+							<h4 class="list-group-item-heading">Cooling</h4>
+							<p class="list-group-item-text">
+								<button type="button" class="btn btn-success">START</button>
+								<button type="button" class="btn btn-danger" onclick="abort()">STOP</button>
+							</p>
+						</span>
+						<span href="#" class="list-group-item">
+							<h4 class="list-group-item-heading">Spindle</h4>
+							<p class="list-group-item-text">
+								<div class="row" style="margin-right:2px;margin-left:2px;">
+									<button type="button" class="btn btn-danger" style="height:30px;width:15%;float:left">0</button>
+									<div class="progress" id="progress_spindle" style="width:70%;height:30px;float:left;">
+										<div class="progress-bar progress-bar-info" id="progress_value" role="progressbar" aria-valuenow="0"
+										aria-valuemin="0" aria-valuemax="100" style="width:0%">
+
+										</div>
+									</div>
+								<button type="button" class="btn btn-success" style="height:30px;width:15%;float:left">100</button>
+								</div>
+							</p>
+						</span>
+					</div>
+
+
 			<div class="panel panel-default">
 			  <div class="panel-heading">
 			    <h3 class="panel-title">Commands</h3>
@@ -386,7 +381,7 @@
 			  <div class="panel-body">
 					<h3>Commands</h3>
 					<p>Handy commands are M119 (end stops), G01 XYZF (go to position X,Y,Z at feedrate F)</p>
-					<form action="http://192.168.1.236/command" id="commandForm">
+					<form action="http://192.168.2.99/command" id="commandForm">
 							<input type="text" name="commandText" placeholder="Send Command...">
 							<input type="submit" value="Send">
 					</form>
@@ -417,19 +412,30 @@
 			</div>
 
 </div>
+<div class="col-md-6" style="margin-top:20px">
+	<div class="panel panel-default" id="status_heading">
+		<div class="panel-heading">
+			<h3 class="panel-title">Visualisation</span></h3>
+		</div>
+		<div class="panel-body" id="gcode_viewer">
+		</div>
+	</div>
+</div>
 
 
-
-<div class="col-md-3 col-md-offset-6" style="margin-top:20px;">
+<div class="col-md-3" style="margin-top:20px;">
 
 	<div class="panel panel-default" id="status_heading">
   <div class="panel-heading">
     <h3 class="panel-title">Info XYZ - <span id="status"></span></h3>
   </div>
   <div class="panel-body">
+
 		<div class="input-group input-group-lg">
 		  <span class="input-group-addon" id="sizing-addon1">X</span>
 		  <input type="text" id="position_x" class="form-control" aria-describedby="sizing-addon1">
+			<span class="input-group-btn" style="width:0px;"></span>
+		  <input type="text" id="position_x_pointe" class="form-control" aria-describedby="sizing-addon1">
 			<span class="input-group-btn">
 				<button class="btn btn-default" id="zero_x" onclick="zeroX(event)">Zero X</button>
       </span>
@@ -437,7 +443,9 @@
 
 		<div class="input-group input-group-lg">
 		  <span class="input-group-addon" id="sizing-addon1">Y</span>
-		  <input type="text" id="position_y" class="form-control" aria-describedby="sizing-addon1">
+		  	<input type="text" id="position_y" class="form-control" aria-describedby="sizing-addon1">
+				<span class="input-group-btn" style="width:0px;"></span>
+		  <input type="text" id="position_y_pointe" class="form-control" aria-describedby="sizing-addon1">
 			<span class="input-group-btn">
 				<button class="btn btn-default" id="zero_y" onclick="zeroY(event)">Zero Y</button>
       </span>
@@ -445,12 +453,15 @@
 		<div class="input-group input-group-lg">
 		  <span class="input-group-addon" id="sizing-addon1">Z</span>
 		  <input type="text" id="position_z" class="form-control" aria-describedby="sizing-addon1">
+			<span class="input-group-btn" style="width:0px;"></span>
+		  <input type="text" id="position_z_pointe" class="form-control" aria-describedby="sizing-addon1">
 			<span class="input-group-btn">
 				<button class="btn btn-default" id="zero_z" onclick="zeroZ(event)">Zero Z</button>
       </span>
 		</div>
 
 		<button class="btn btn-default" id="zero" onclick="zero(event)">Go to zero</button>
+		<button class="btn btn-default" id="zero" onclick="zeroXY(event)">Go to zero XY</button>
 
   </div>
 </div>
@@ -489,6 +500,8 @@
     <script src="bootstrap/js/bootstrap.min.js"></script>
 
 		<script type="text/javascript" src="viewer.js"></script>
+
+		<script type="text/javascript" src="functionscnc.js"></script>
 </div>
 
 </body>
